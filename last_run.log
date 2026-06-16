@@ -1,0 +1,120 @@
+=================================================================
+PASO 1-2: CARGA Y CLASIFICACIÓN ACTIVAS/INACTIVAS
+=================================================================
+  Total interfaces : 1000
+  Activas          : 438
+  Inactivas        : 562
+  Periodo          : 2026-03-18 → 2026-04-17 (2880 timestamps)
+  Intervalo        : 15 min  |  Días: 30
+
+  Tráfico medio por día de la semana (interfaces activas):
+    Lunes     :       16,748  
+    Martes    :       22,635  █
+    Miércoles :       23,213  █
+    Jueves    :      288,824  ███████████████
+    Viernes   :       20,542  █
+    Sábado    :       15,307  
+    Domingo   :       12,336  
+
+=================================================================
+PASO 3: ZERORRATIO Y AJUSTE ESTACIONAL
+=================================================================
+
+  ZeroRatio clásico: % de polls en cero en ventana de 4 pasos (60 min)
+  
+  ZeroRatio ajustado estacionalmente:
+    Un cero a las 2 AM del domingo tiene MENOS peso que
+    un cero a las 10 AM del lunes (horario laboral).
+    
+    zr_vs_baseline = zr4 / (baseline_dow + ε)
+    
+    Si zr_vs_baseline >> 1 → el silencio es anómalo para ese día/hora
+    Si zr_vs_baseline ≈ 0 → el silencio es normal para ese día/hora
+
+=================================================================
+PASO 4-5: ETIQUETADO Y FEATURE ENGINEERING
+=================================================================
+  Dataset: 1,259,688 filas × 12 features + 1 label
+  Caída real    (1): 953,938  (75.7%)
+  No caída      (0): 305,750  (24.3%)
+    ├─ Normal      : 300,077
+    └─ Falsa alarma: 5,673
+
+=================================================================
+PASO 6: SPLIT TEMPORAL 50/50
+=================================================================
+  Corte : 2026-04-02 16:45
+  Train : 629,844  |  Caídas: 478,011 (75.9%)
+  Test  : 629,844  |  Caídas: 475,927 (75.6%)
+
+=================================================================
+PASO 7: ENTRENAMIENTO DE 5 MODELOS
+=================================================================
+
+  ▶ Logistic Regression…
+    thr=0.85  Prec=0.999  Rec=0.002  F1=0.988  Acc=0.981  AUC=0.997  FP=1390  FA%=0.9%
+
+  ▶ Random Forest…
+    thr=0.85  Prec=1.000  Rec=0.000  F1=0.995  Acc=0.992  AUC=1.000  FP=2  FA%=0.0%
+
+  ▶ Decision Tree…
+    thr=0.88  Prec=1.000  Rec=0.000  F1=0.995  Acc=0.992  AUC=1.000  FP=24  FA%=0.0%
+
+  ▶ XGBoost (numpy)…
+    thr=0.98  Prec=0.999  Rec=0.055  F1=0.993  Acc=0.989  AUC=0.999  FP=3  FA%=0.0%
+
+  ▶ LSTM (numpy)…
+    Epoch  5/20  loss=0.0572  val=0.0276
+    Epoch 10/20  loss=0.0390  val=0.0209
+    Epoch 15/20  loss=0.0364  val=0.0199
+    Epoch 20/20  loss=0.0337  val=0.0195
+    thr=0.85  Prec=0.999  Rec=0.010  F1=0.992  Acc=0.988  AUC=0.997  FP=2140  FA%=1.4%
+
+=================================================================
+TABLA COMPLETA DE MÉTRICAS
+=================================================================
+  Modelo                  Thr    Prec    Rec     F1      Acc     AUC        FP    FA%
+  ──────────────────────────────────────────────────────────────────────────────
+  Logistic Regression     0.85   0.999   0.002   0.988   0.981   0.997   1390   0.9%
+  Random Forest           0.85   1.000   0.000   0.995   0.992   1.000      2   0.0%
+  Decision Tree           0.88   1.000   0.000   0.995   0.992   1.000     24   0.0%
+  XGBoost                 0.98   0.999   0.055   0.993   0.989   0.999      3   0.0%
+  LSTM                    0.85   0.999   0.010   0.992   0.988   0.997   2140   1.4%
+
+Generando Figura 1: Overview…
+  ✔ outputs/book2_overview.png
+Generando Figura 2: Modelos y métricas…
+  ✔ outputs/book2_modelos.png
+Generando Figura 3: Temporal por días…
+Traceback (most recent call last):
+  File "pandas/_libs/tslibs/offsets.pyx", line 6213, in pandas._libs.tslibs.offsets._get_offset
+KeyError: 'H'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "pandas/_libs/tslibs/offsets.pyx", line 6344, in pandas._libs.tslibs.offsets.to_offset
+  File "pandas/_libs/tslibs/offsets.pyx", line 6219, in pandas._libs.tslibs.offsets._get_offset
+  File "pandas/_libs/tslibs/offsets.pyx", line 6137, in pandas._libs.tslibs.offsets.raise_invalid_freq
+ValueError: Invalid frequency: H. Failed to parse with error message: KeyError('H'). Did you mean h?
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/juanmanuelvelosavalencia/Documents/Juan Manuel Velosa /PDG/Segunda base de datos/codigo.py", line 797, in <module>
+    real_by_time=df2[df2['label']==1].resample('1h')['label'].count()
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/juanmanuelvelosavalencia/Documents/Juan Manuel Velosa /PDG/Segunda base de datos/.venv/lib/python3.13/site-packages/pandas/core/generic.py", line 9423, in resample
+    return get_resampler(
+        cast("Series | DataFrame", self),
+    ...<8 lines>...
+        group_keys=group_keys,
+    )
+  File "/Users/juanmanuelvelosavalencia/Documents/Juan Manuel Velosa /PDG/Segunda base de datos/.venv/lib/python3.13/site-packages/pandas/core/resample.py", line 2334, in get_resampler
+    tg = TimeGrouper(obj, **kwds)  # type: ignore[arg-type]
+  File "/Users/juanmanuelvelosavalencia/Documents/Juan Manuel Velosa /PDG/Segunda base de datos/.venv/lib/python3.13/site-packages/pandas/core/resample.py", line 2420, in __init__
+    freq = to_offset(freq)
+  File "pandas/_libs/tslibs/offsets.pyx", line 6229, in pandas._libs.tslibs.offsets.to_offset
+  File "pandas/_libs/tslibs/offsets.pyx", line 6352, in pandas._libs.tslibs.offsets.to_offset
+  File "pandas/_libs/tslibs/offsets.pyx", line 6137, in pandas._libs.tslibs.offsets.raise_invalid_freq
+ValueError: Invalid frequency: 1H. Failed to parse with error message: ValueError("Invalid frequency: H. Failed to parse with error message: KeyError('H'). Did you mean h?")
